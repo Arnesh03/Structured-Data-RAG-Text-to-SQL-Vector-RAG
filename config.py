@@ -12,9 +12,11 @@ DB_PATH = DATA_DIR / "ecommerce.db"
 CSV_PATH = DATA_DIR / "sales_data.csv"
 VECTORSTORE_DIR = DATA_DIR / "faiss_index"
 
-# ── LLM Settings ──────────────────────────────────────────────────────
-OPENAI_MODEL = "gpt-4o-mini"
-EMBEDDING_MODEL = "text-embedding-3-small"
+# ── LLM Settings (Groq — free & fast) ────────────────────────────────
+GROQ_MODEL = "llama3-70b-8192"
+
+# ── Embedding Settings (Local HuggingFace — completely free) ─────────
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 # ── Vector Store Settings ─────────────────────────────────────────────
 CHUNK_SIZE = 500

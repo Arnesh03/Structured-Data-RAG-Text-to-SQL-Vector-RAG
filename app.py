@@ -108,13 +108,7 @@ EXAMPLES = [
 
 def build_app() -> gr.Blocks:
     """Build the Gradio app."""
-    with gr.Blocks(
-        title="Structured Data RAG",
-        theme=gr.themes.Soft(
-            primary_hue="blue",
-            secondary_hue="slate",
-        ),
-    ) as app:
+    with gr.Blocks(title="Structured Data RAG") as app:
         gr.Markdown(DESCRIPTION)
 
         chatbot = gr.ChatInterface(
@@ -131,4 +125,10 @@ def build_app() -> gr.Blocks:
 if __name__ == "__main__":
     initialize()
     app = build_app()
-    app.launch(share=False)
+    app.launch(
+        share=False,
+        theme=gr.themes.Soft(
+            primary_hue="blue",
+            secondary_hue="slate",
+        )
+    )

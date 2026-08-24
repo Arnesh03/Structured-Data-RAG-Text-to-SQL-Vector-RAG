@@ -4,14 +4,14 @@ Text-to-SQL pipeline using LangChain.
 Connects to the SQLite e-commerce database and converts natural language
 questions into SQL queries, executes them, and returns natural language answers.
 """
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain_community.utilities import SQLDatabase
 from langchain_classic.chains.sql_database.query import create_sql_query_chain
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 
-from config import DB_PATH, OPENAI_MODEL
+from config import DB_PATH, GROQ_MODEL
 
 
 # ── Custom Prompts ────────────────────────────────────────────────────
@@ -34,7 +34,7 @@ def get_sql_chain():
     db = SQLDatabase.from_uri(f"sqlite:///{DB_PATH}")
 
     # LLM
-    llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0)
+    llm = ChatGroq(model=GROQ_MODEL, temperature=0)
 
     # Chain that generates SQL from natural language
     sql_query_chain = create_sql_query_chain(llm, db)

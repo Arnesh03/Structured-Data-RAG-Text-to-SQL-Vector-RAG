@@ -4,12 +4,12 @@ Vector RAG pipeline for policy/FAQ document retrieval.
 Uses FAISS vector store to retrieve relevant document chunks and generates
 answers grounded in the retrieved context.
 """
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 
-from config import OPENAI_MODEL, RETRIEVER_TOP_K
+from config import GROQ_MODEL, RETRIEVER_TOP_K
 from vectorstore import load_vectorstore
 
 
@@ -46,7 +46,7 @@ def get_rag_chain():
     retriever = vectorstore.as_retriever(search_kwargs={"k": RETRIEVER_TOP_K})
 
     # LLM
-    llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0)
+    llm = ChatGroq(model=GROQ_MODEL, temperature=0)
 
     # RAG chain
     chain = (

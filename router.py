@@ -7,11 +7,11 @@ Uses an LLM to classify user queries as either:
 
 Falls back to RAG if uncertain.
 """
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-from config import OPENAI_MODEL
+from config import GROQ_MODEL
 
 # ── Router Prompt ─────────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ Classification:""")
 
 def get_router():
     """Build and return the query router chain."""
-    llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0)
+    llm = ChatGroq(model=GROQ_MODEL, temperature=0)
     chain = ROUTER_PROMPT | llm | StrOutputParser()
     return chain
 

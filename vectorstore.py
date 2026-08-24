@@ -10,7 +10,7 @@ from fpdf import FPDF
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
 from config import (
@@ -166,7 +166,7 @@ def build_vectorstore() -> FAISS:
 
     # Embed and store
     print("Building FAISS index...")
-    embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
     vectorstore = FAISS.from_documents(chunks, embeddings)
 
     # Save to disk
@@ -180,7 +180,7 @@ def load_vectorstore() -> FAISS:
     """Load existing FAISS vector store from disk, or build if missing."""
     if VECTORSTORE_DIR.exists():
         print("Loading existing FAISS index...")
-        embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+        embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
         return FAISS.load_local(
             str(VECTORSTORE_DIR), embeddings, allow_dangerous_deserialization=True
         )
