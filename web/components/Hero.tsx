@@ -65,7 +65,7 @@ export function Hero() {
 
         <Reveal delay={80}>
           <h1 className="t-display text-balance">
-            Two pipelines.
+            Healthcare
             <br />
             <span
               className="bg-clip-text text-transparent"
@@ -74,7 +74,7 @@ export function Hero() {
                   "linear-gradient(100deg, var(--sql), var(--rag) 90%)",
               }}
             >
-              One question.
+              Structured Data RAG
             </span>
           </h1>
         </Reveal>
