@@ -56,6 +56,14 @@ export const TOOLTIP_STYLE = {
     color: "var(--text)",
   },
   labelStyle: { color: "var(--text-3)", fontSize: 12, marginBottom: 5 },
+  /*
+    Recharts colours each tooltip value `entry.color || "#000"`. Our bars and
+    arcs are coloured per <Cell> rather than with a series-level fill, so
+    entry.color is undefined and every value would fall back to hardcoded
+    black - unreadable on the dark surface. itemStyle is spread last, so this
+    wins.
+  */
+  itemStyle: { color: "var(--text)" },
   cursor: { fill: "var(--surface-2)" },
 } as const;
 
