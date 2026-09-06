@@ -2,46 +2,38 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
 
 # Distribution / packaging
-.Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+.eggs/
 
-# Environment Variables
+# Environments
+.venv/
+venv/
+env/
 .env
 .env.local
 
-# Virtual Environments
-venv/
-.venv/
-env/
-.env/
-
-# SQLite Databases
-*.sqlite3
+# Generated data artifacts (rebuild with `make setup`)
+data/
 *.db
+*.sqlite3
 
-# Data & Vectorstores
-data/ecommerce.db
-data/sales_data.csv
-data/faiss_index/
-data/policies/
+# Test & tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Frontend
+web/node_modules/
+web/.next/
+web/out/
+web/.env.local
+web/next-env.d.ts
+web/tsconfig.tsbuildinfo
+
+# OS
+.DS_Store

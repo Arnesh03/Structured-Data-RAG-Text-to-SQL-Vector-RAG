@@ -1,134 +1,59 @@
 """
-Structured Data RAG — Unified Chat Interface
+Healthcare Structured Data RAG - Gradio chat interface.
 
-A Gradio-powered chat application that routes user queries to either:
-  🗄️ Text-to-SQL pipeline (quantitative business questions)
-  📄 Vector RAG pipeline (policy/FAQ document questions)
+A dependency-light fallback UI: the same routed pipeline as the Next.js
+frontend, without needing Node installed. Run `make web` for the full
+dashboard experience.
 
 Run:  python app.py
 """
 import gradio as gr
 
-from router import route_query
-from sql_chain import query_sql
-from rag_chain import query_rag
-from database import setup_database
-from vectorstore import build_vectorstore, load_vectorstore
-from config import DB_PATH, VECTORSTORE_DIR
+from config import GRADIO_SERVER_NAME, GRADIO_SERVER_PORT
+from pipeline import EXAMPLE_QUESTIONS, answer, format_response, initialize
 
+DESCRIPTION = """\
+# 🏥 Healthcare Structured Data RAG
 
-# ── Initialization ────────────────────────────────────────────────────
+**A hybrid RAG system with intelligent query routing over 54,966 hospital admissions.**
 
-def initialize():
-    """Set up database and vector store if they don't exist."""
-    if not DB_PATH.exists():
-        print("🔧 Setting up database...")
-        setup_database()
-    else:
-        print("✅ Database already exists.")
+Ask about:
+- 🗄️ **Patient data** - conditions, billing, length of stay, admission types → *Text-to-SQL over SQLite*
+- 📄 **Hospital policy** - triage, insurance rules, clinical protocols, patient rights → *Vector RAG over FAISS*
 
-    if not VECTORSTORE_DIR.exists():
-        print("🔧 Building vector store...")
-        build_vectorstore()
-    else:
-        print("✅ Vector store already exists.")
-
-    print("\n🚀 System ready!\n")
-
-
-# ── Chat Handler ──────────────────────────────────────────────────────
-
-def chat(message: str, history: list) -> str:
-    """
-    Process a user message: route it, run the appropriate pipeline,
-    and return a formatted response.
-    """
-    if not message.strip():
-        return "Please enter a question!"
-
-    try:
-        # Step 1: Route the query
-        route = route_query(message)
-
-        # Step 2: Run the appropriate pipeline
-        if route == "sql":
-            result = query_sql(message)
-            # Format response with SQL transparency
-            sql_query = result.get("sql_query", "N/A")
-            response = (
-                f"🗄️ **Routed to: SQL Database**\n\n"
-                f"{result['answer']}\n\n"
-                f"---\n"
-                f"*Generated SQL:*\n```sql\n{sql_query}\n```"
-            )
-        else:
-            result = query_rag(message)
-            sources = result.get("sources", [])
-            sources_str = ", ".join(sources) if sources else "N/A"
-            response = (
-                f"📄 **Routed to: Document RAG**\n\n"
-                f"{result['answer']}\n\n"
-                f"---\n"
-                f"*Sources: {sources_str}*"
-            )
-
-        return response
-
-    except Exception as e:
-        return f"❌ **Error:** {str(e)}\n\nPlease check your OpenAI API key and try again."
-
-
-# ── Gradio UI ─────────────────────────────────────────────────────────
-
-DESCRIPTION = """
-# 🔀 Structured Data RAG
-
-**A hybrid RAG system with intelligent query routing.**
-
-Ask me anything about:
-- 🗄️ **Business data** — orders, revenue, products, customers (→ Text-to-SQL)
-- 📄 **Policies & FAQ** — returns, shipping, payments, support (→ Vector RAG)
-
-The system automatically detects your question type and routes it to the right pipeline.
+The router classifies each question and sends it down the right pipeline. Every answer
+shows the route it took, plus the SQL that ran or the documents it cited.
 """
 
-EXAMPLES = [
-    "What is the average order value?",
-    "What are the top 5 products by total revenue?",
-    "How many orders were placed in each month?",
-    "What is the return policy for electronics?",
-    "How long does standard shipping take?",
-    "What payment methods do you accept?",
-    "How many orders were cancelled?",
-    "Can I modify my order after placing it?",
-    "What is the total revenue by category?",
-    "How do I contact customer support?",
-]
+
+def chat(message: str, history: list) -> str:
+    """Route the message, run the matching pipeline, return markdown."""
+    return format_response(answer(message))
 
 
 def build_app() -> gr.Blocks:
     """Build the Gradio app."""
-    with gr.Blocks(title="Structured Data RAG") as app:
+    theme = gr.themes.Soft(primary_hue="teal", secondary_hue="slate")
+    with gr.Blocks(title="Healthcare Structured Data RAG", theme=theme,
+                   fill_height=True) as app:
         gr.Markdown(DESCRIPTION)
-
-        chatbot = gr.ChatInterface(
+        gr.ChatInterface(
             fn=chat,
-            examples=EXAMPLES,
+            chatbot=gr.Chatbot(
+                height=440,
+                show_label=False,
+                placeholder="Ask a question, or pick one of the examples below.",
+            ),
+            examples=[ex["q"] for ex in EXAMPLE_QUESTIONS],
             cache_examples=False,
         )
-
     return app
 
 
-# ── Entry Point ───────────────────────────────────────────────────────
-
 if __name__ == "__main__":
     initialize()
-    app = build_app()
-    app.launch(
+    build_app().launch(
+        server_name=GRADIO_SERVER_NAME,
+        server_port=GRADIO_SERVER_PORT,
         share=False,
-        theme=gr.themes.Soft(
-            primary_hue="blue",
-            secondary_hue="slate",
-        )
     )

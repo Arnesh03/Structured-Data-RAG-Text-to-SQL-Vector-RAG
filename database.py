@@ -1,162 +1,128 @@
 """
-Database setup: generates 1,000 fake e-commerce orders and loads them into SQLite.
+Database setup: loads the cleaned healthcare admissions into SQLite.
 
-Run standalone:  python database.py
+The schema is a single wide `admissions` table. Text-to-SQL works best against
+a flat, well-commented schema — every join the model doesn't have to guess is
+a query it doesn't get wrong — so the derived columns from preprocessing
+(length of stay, age group, admission month) are materialized as real columns.
+
+Run standalone:  python database.py [--force]
 """
-import csv
-import random
+import argparse
 import sqlite3
-from datetime import datetime, timedelta
 
-from faker import Faker
+import pandas as pd
 
-from config import CSV_PATH, DB_PATH, NUM_ORDERS
+from config import CLEAN_CSV_PATH, DB_PATH
+from preprocess import run as run_preprocessing
 
-fake = Faker()
-Faker.seed(42)
-random.seed(42)
+TABLE_NAME = "admissions"
 
-# ── Product Catalog ──────────────────────────────────────────────────
-PRODUCTS = {
-    "Electronics": [
-        ("Wireless Earbuds", 29.99, 79.99),
-        ("Bluetooth Speaker", 39.99, 149.99),
-        ("Laptop Stand", 24.99, 59.99),
-        ("USB-C Hub", 19.99, 49.99),
-        ("Mechanical Keyboard", 49.99, 129.99),
-        ("Gaming Mouse", 29.99, 89.99),
-        ("Webcam HD", 39.99, 99.99),
-        ("Portable Charger", 14.99, 49.99),
-    ],
-    "Clothing": [
-        ("Cotton T-Shirt", 9.99, 29.99),
-        ("Denim Jeans", 29.99, 69.99),
-        ("Running Shoes", 49.99, 129.99),
-        ("Winter Jacket", 59.99, 149.99),
-        ("Baseball Cap", 9.99, 24.99),
-        ("Hoodie", 24.99, 59.99),
-    ],
-    "Home & Kitchen": [
-        ("Coffee Maker", 29.99, 89.99),
-        ("Air Fryer", 49.99, 129.99),
-        ("Blender", 24.99, 69.99),
-        ("Cutting Board Set", 14.99, 39.99),
-        ("Water Bottle", 9.99, 29.99),
-        ("Desk Lamp", 19.99, 49.99),
-    ],
-    "Books": [
-        ("Python Programming", 19.99, 49.99),
-        ("Data Science Handbook", 24.99, 54.99),
-        ("AI & Machine Learning", 29.99, 59.99),
-        ("Business Strategy", 14.99, 34.99),
-        ("Self-Help Guide", 9.99, 24.99),
-    ],
-}
+CREATE_TABLE_SQL = """
+    CREATE TABLE admissions (
+        admission_id        TEXT PRIMARY KEY,  -- e.g. 'ADM-000001'
+        patient_id          TEXT,              -- stable per patient across visits
+        patient_name        TEXT,
+        age                 INTEGER,           -- years at admission
+        age_group           TEXT,              -- Under 18 | 18-29 | 30-44 | 45-59 | 60-74 | 75+
+        gender              TEXT,              -- Male | Female
+        blood_type          TEXT,              -- A+ | A- | B+ | B- | AB+ | AB- | O+ | O-
+        medical_condition   TEXT,              -- Arthritis | Asthma | Cancer | Diabetes | Hypertension | Obesity
+        admission_date      TEXT,              -- ISO date 'YYYY-MM-DD'
+        discharge_date      TEXT,              -- ISO date 'YYYY-MM-DD'
+        length_of_stay_days INTEGER,           -- discharge_date - admission_date
+        admission_year      INTEGER,           -- e.g. 2023
+        admission_month     TEXT,              -- 'YYYY-MM'
+        admission_dow       TEXT,              -- weekday name of admission
+        doctor              TEXT,              -- attending physician
+        hospital            TEXT,
+        insurance_provider  TEXT,              -- Aetna | Blue Cross | Cigna | Medicare | UnitedHealthcare
+        billing_amount      REAL,              -- total charge for the stay, USD
+        billing_per_day     REAL,              -- billing_amount / length_of_stay_days, USD
+        room_number         INTEGER,
+        admission_type      TEXT,              -- Elective | Urgent | Emergency
+        medication          TEXT,              -- Aspirin | Ibuprofen | Lipitor | Paracetamol | Penicillin
+        test_results        TEXT               -- Normal | Abnormal | Inconclusive
+    )
+"""
 
-STATUSES = ["Delivered", "Shipped", "Processing", "Cancelled", "Returned"]
-STATUS_WEIGHTS = [0.55, 0.15, 0.10, 0.10, 0.10]
-PAYMENT_METHODS = ["Credit Card", "Debit Card", "PayPal", "UPI", "Cash on Delivery"]
-US_STATES = [
-    "California", "Texas", "New York", "Florida", "Illinois",
-    "Pennsylvania", "Ohio", "Georgia", "North Carolina", "Michigan",
-    "New Jersey", "Virginia", "Washington", "Arizona", "Massachusetts",
+INDEX_SQL = [
+    "CREATE INDEX idx_adm_condition ON admissions(medical_condition)",
+    "CREATE INDEX idx_adm_type ON admissions(admission_type)",
+    "CREATE INDEX idx_adm_date ON admissions(admission_date)",
+    "CREATE INDEX idx_adm_month ON admissions(admission_month)",
+    "CREATE INDEX idx_adm_insurer ON admissions(insurance_provider)",
+    "CREATE INDEX idx_adm_hospital ON admissions(hospital)",
+    "CREATE INDEX idx_adm_patient ON admissions(patient_id)",
+    "CREATE INDEX idx_adm_results ON admissions(test_results)",
+]
+
+COLUMNS = [
+    "admission_id", "patient_id", "patient_name", "age", "age_group", "gender",
+    "blood_type", "medical_condition", "admission_date", "discharge_date",
+    "length_of_stay_days", "admission_year", "admission_month", "admission_dow",
+    "doctor", "hospital", "insurance_provider", "billing_amount",
+    "billing_per_day", "room_number", "admission_type", "medication",
+    "test_results",
 ]
 
 
-def generate_orders(n: int = NUM_ORDERS) -> list[dict]:
-    """Generate n fake e-commerce orders."""
-    orders = []
-    start_date = datetime(2024, 1, 1)
-    end_date = datetime(2024, 12, 31)
-
-    for i in range(1, n + 1):
-        category = random.choice(list(PRODUCTS.keys()))
-        product_name, min_price, max_price = random.choice(PRODUCTS[category])
-        unit_price = round(random.uniform(min_price, max_price), 2)
-        quantity = random.randint(1, 5)
-        total_amount = round(unit_price * quantity, 2)
-        order_date = start_date + timedelta(
-            days=random.randint(0, (end_date - start_date).days)
-        )
-        state = random.choice(US_STATES)
-
-        orders.append({
-            "order_id": f"ORD-{i:05d}",
-            "customer_name": fake.name(),
-            "email": fake.email(),
-            "product": product_name,
-            "category": category,
-            "quantity": quantity,
-            "unit_price": unit_price,
-            "total_amount": total_amount,
-            "order_date": order_date.strftime("%Y-%m-%d"),
-            "status": random.choices(STATUSES, STATUS_WEIGHTS)[0],
-            "payment_method": random.choice(PAYMENT_METHODS),
-            "shipping_city": fake.city(),
-            "shipping_state": state,
-        })
-
-    return orders
-
-
-def save_csv(orders: list[dict]) -> None:
-    """Save orders to CSV."""
-    if not orders:
-        return
-    with open(CSV_PATH, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=orders[0].keys())
-        writer.writeheader()
-        writer.writerows(orders)
-    print(f"✅ Saved {len(orders)} orders to {CSV_PATH}")
-
-
-def load_into_sqlite(orders: list[dict]) -> None:
-    """Create SQLite database and insert orders."""
+def load_into_sqlite(df: pd.DataFrame) -> int:
+    """Create the SQLite database and insert admissions. Returns the row count."""
     conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    cursor.execute("DROP TABLE IF EXISTS orders")
-    cursor.execute("""
-        CREATE TABLE orders (
-            order_id TEXT PRIMARY KEY,
-            customer_name TEXT,
-            email TEXT,
-            product TEXT,
-            category TEXT,
-            quantity INTEGER,
-            unit_price REAL,
-            total_amount REAL,
-            order_date TEXT,
-            status TEXT,
-            payment_method TEXT,
-            shipping_city TEXT,
-            shipping_state TEXT
+    try:
+        cursor = conn.cursor()
+        cursor.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
+        cursor.execute(CREATE_TABLE_SQL)
+        cursor.executemany(
+            f"INSERT INTO {TABLE_NAME} VALUES ({', '.join('?' * len(COLUMNS))})",
+            df[COLUMNS].itertuples(index=False, name=None),
         )
-    """)
+        for stmt in INDEX_SQL:
+            cursor.execute(stmt)
+        conn.commit()
+        count = cursor.execute(f"SELECT COUNT(*) FROM {TABLE_NAME}").fetchone()[0]
+    finally:
+        conn.close()
 
-    cursor.executemany("""
-        INSERT INTO orders VALUES (
-            :order_id, :customer_name, :email, :product, :category,
-            :quantity, :unit_price, :total_amount, :order_date,
-            :status, :payment_method, :shipping_city, :shipping_state
-        )
-    """, orders)
-
-    conn.commit()
-
-    # Verify
-    count = cursor.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
-    print(f"✅ Loaded {count} orders into SQLite at {DB_PATH}")
-
-    conn.close()
+    print(f"  Loaded {count:,} admissions into SQLite at {DB_PATH}")
+    return count
 
 
-def setup_database() -> None:
-    """Generate data, save CSV, and load into SQLite."""
-    orders = generate_orders()
-    save_csv(orders)
-    load_into_sqlite(orders)
+def database_is_ready() -> bool:
+    """True when the DB file exists and holds a populated `admissions` table."""
+    if not DB_PATH.exists():
+        return False
+    try:
+        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+        try:
+            row = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                (TABLE_NAME,),
+            ).fetchone()
+            if row is None:
+                return False
+            return conn.execute(f"SELECT COUNT(*) FROM {TABLE_NAME}").fetchone()[0] > 0
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        return False
+
+
+def setup_database(force: bool = False) -> None:
+    """Preprocess the raw CSV if needed, then load it into SQLite."""
+    if database_is_ready() and not force:
+        print("  Database already exists - skipping (use force=True to rebuild).")
+        return
+
+    df = run_preprocessing(force=force) if force or not CLEAN_CSV_PATH.exists() \
+        else pd.read_csv(CLEAN_CSV_PATH)
+
+    print("Building healthcare database...")
+    load_into_sqlite(df)
 
 
 if __name__ == "__main__":
-    setup_database()
+    parser = argparse.ArgumentParser(description="Build the healthcare SQLite database.")
+    parser.add_argument("--force", action="store_true", help="rebuild even if it exists")
+    setup_database(force=parser.parse_args().force)

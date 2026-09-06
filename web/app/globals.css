@@ -1,0 +1,322 @@
+@import "tailwindcss";
+
+/* Manual theme toggle: `dark` on <html> wins over the system preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  Palette follows Apple's own surface values: a very light grey page with pure
+  white cards in light mode, and true black with elevated near-black cards in
+  dark. Text steps down through three weights of grey rather than fading with
+  opacity, which keeps contrast predictable over both grounds.
+*/
+:root {
+  --bg: #fbfbfd;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f5f5f7;
+  --surface-3: #ececee;
+  --hairline: rgb(0 0 0 / 0.09);
+  --hairline-strong: rgb(0 0 0 / 0.16);
+
+  --text: #1d1d1f;
+  --text-2: #6e6e73;
+  --text-3: #86868b;
+
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --accent-soft: #e8f2fe;
+  --on-accent: #ffffff;
+
+  --sql: #0071e3;
+  --sql-soft: #e8f2fe;
+  --rag: #8944ab;
+  --rag-soft: #f4eaf9;
+  --positive: #00845a;
+  --warn: #b25000;
+  --warn-soft: #fdf0e3;
+  --danger: #c9251c;
+
+  --chart-grid: rgb(0 0 0 / 0.07);
+  --chart-axis: #86868b;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 16px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 18px 44px -16px rgb(0 0 0 / 0.18);
+  --nav-bg: rgb(251 251 253 / 0.72);
+
+  /* Apple's motion curve: a long, decelerating ease with no overshoot. */
+  --ease: cubic-bezier(0.28, 0.11, 0.32, 1);
+}
+
+.dark {
+  --bg: #000000;
+  --bg-elevated: #1d1d1f;
+  --surface: #1d1d1f;
+  --surface-2: #2d2d2f;
+  --surface-3: #3a3a3c;
+  --hairline: rgb(255 255 255 / 0.11);
+  --hairline-strong: rgb(255 255 255 / 0.22);
+
+  --text: #f5f5f7;
+  --text-2: #a1a1a6;
+  --text-3: #86868b;
+
+  --accent: #2997ff;
+  --accent-hover: #47a6ff;
+  --accent-soft: #0a2c4d;
+  --on-accent: #ffffff;
+
+  --sql: #2997ff;
+  --sql-soft: #0a2c4d;
+  --rag: #d18cf5;
+  --rag-soft: #33184a;
+  --positive: #2fd18b;
+  --warn: #f5a623;
+  --warn-soft: #3a2a0c;
+  --danger: #ff6961;
+
+  --chart-grid: rgb(255 255 255 / 0.08);
+  --chart-axis: #86868b;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 20px rgb(0 0 0 / 0.55);
+  --shadow-lg: 0 24px 60px -20px rgb(0 0 0 / 0.85);
+  --nav-bg: rgb(0 0 0 / 0.72);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-elevated: var(--bg-elevated);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-text: var(--text);
+  --color-muted: var(--text-2);
+  --color-faint: var(--text-3);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-sql: var(--sql);
+  --color-sql-soft: var(--sql-soft);
+  --color-rag: var(--rag);
+  --color-rag-soft: var(--rag-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-positive: var(--positive);
+
+  --font-sans: var(--font-stack);
+  --font-mono: var(--font-mono-stack);
+}
+
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ── Type scale ───────────────────────────────────────────────────────
+   Apple's display sizes are large and tightly tracked; tracking has to
+   negative-scale with size or big headlines read as loose. */
+.t-display {
+  font-size: clamp(2.75rem, 6.5vw, 5rem);
+  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+.t-title {
+  font-size: clamp(1.9rem, 3.6vw, 3rem);
+  line-height: 1.08;
+  font-weight: 600;
+  letter-spacing: -0.028em;
+}
+.t-headline {
+  font-size: clamp(1.3rem, 2vw, 1.75rem);
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.t-intro {
+  font-size: clamp(1.05rem, 1.5vw, 1.3125rem);
+  line-height: 1.42;
+  font-weight: 400;
+  letter-spacing: -0.012em;
+  color: var(--text-2);
+}
+.t-body {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  letter-spacing: -0.011em;
+}
+.t-caption {
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  letter-spacing: 0;
+  color: var(--text-3);
+}
+.t-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.t-numeral {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Scroll reveal ────────────────────────────────────────────────────
+   Elements start slightly low and transparent; the observer adds .is-in. */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.9s var(--ease),
+    transform 0.9s var(--ease);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Motion ───────────────────────────────────────────────────────────*/
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-fade-up {
+  animation: fade-up 0.55s var(--ease) both;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%      { opacity: 1;   transform: scale(1); }
+}
+.animate-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+
+@keyframes drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33%      { transform: translate3d(3%, -4%, 0) scale(1.08); }
+  66%      { transform: translate3d(-3%, 3%, 0) scale(0.96); }
+}
+.animate-drift { animation: drift 22s ease-in-out infinite; }
+
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+.shimmer { position: relative; overflow: hidden; }
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--surface-2), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+/* A pulse travelling along the router diagram's connectors. */
+@keyframes flow { to { stroke-dashoffset: -28; } }
+.animate-flow {
+  stroke-dasharray: 5 9;
+  animation: flow 1.1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .animate-fade-up,
+  .animate-dot,
+  .animate-drift,
+  .animate-flow,
+  .shimmer::after {
+    animation: none;
+  }
+}
+
+/* ── Scrollbars ───────────────────────────────────────────────────────*/
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--hairline-strong) transparent;
+}
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb {
+  background: var(--hairline-strong);
+  border-radius: 99px;
+  border: 2.5px solid transparent;
+  background-clip: content-box;
+}
+
+/* ── Markdown answers ─────────────────────────────────────────────────*/
+.prose-answer {
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  letter-spacing: -0.011em;
+}
+.prose-answer > * + * { margin-top: 0.9rem; }
+.prose-answer strong { font-weight: 600; }
+.prose-answer ul,
+.prose-answer ol {
+  padding-left: 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.prose-answer ul { list-style: disc; }
+.prose-answer ol { list-style: decimal; }
+.prose-answer code {
+  font-family: var(--font-mono-stack);
+  font-size: 0.85em;
+  background: var(--surface-2);
+  border-radius: 5px;
+  padding: 0.1em 0.4em;
+}
+.prose-answer table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+.prose-answer th,
+.prose-answer td {
+  border-bottom: 1px solid var(--hairline);
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+}
+.prose-answer thead th {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--text-3);
+}
+.prose-answer tbody tr:last-child td { border-bottom: none; }
+.prose-answer h1,
+.prose-answer h2,
+.prose-answer h3 {
+  font-weight: 600;
+  font-size: 1.125rem;
+  letter-spacing: -0.018em;
+}
