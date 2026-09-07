@@ -15,10 +15,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import analytics
-from config import API_HOST, API_PORT, CORS_ORIGINS
+from config import API_HOST, API_PORT, CORS_ORIGINS, PROJECT_ROOT
 from database import TABLE_NAME, database_is_ready
 from llm import has_api_key, model_name, provider
 from pipeline import EXAMPLE_QUESTIONS, answer, answer_events, initialize
@@ -151,6 +152,29 @@ async def ask_stream(payload: Question) -> StreamingResponse:
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+# ── Frontend ──────────────────────────────────────────────────────────
+#
+# When the Next.js static export is present, serve it from the same process.
+# That is what lets the whole project deploy as one container behind one URL,
+# with no CORS and no second service to keep alive. Mounted last so it cannot
+# shadow any /api route.
+
+WEB_DIR = PROJECT_ROOT / "web" / "out"
+
+if WEB_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
+else:
+    @app.get("/")
+    def index() -> dict:
+        """Stand-in when the frontend hasn't been built."""
+        return {
+            "service": "Healthcare Structured Data RAG",
+            "docs": "/docs",
+            "note": "Frontend not built. Run `npm run build --prefix web`, "
+                    "or use the Next.js dev server on port 3000.",
+        }
 
 
 if __name__ == "__main__":

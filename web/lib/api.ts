@@ -8,9 +8,18 @@ import type {
   StreamEvent,
 } from "./types";
 
-/** The FastAPI backend. Override with NEXT_PUBLIC_API_URL for a remote host. */
+/**
+ * The FastAPI backend.
+ *
+ * In a production build this defaults to the empty string, i.e. the same
+ * origin the page was served from - which is how the single-container deploy
+ * works, with FastAPI serving both the API and this bundle. In development the
+ * two run on separate ports, so it points at the local backend. Either can be
+ * overridden with NEXT_PUBLIC_API_URL.
+ */
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:8010";
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "")
+  ?? (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8010" : "");
 
 async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, { signal, cache: "no-store" });

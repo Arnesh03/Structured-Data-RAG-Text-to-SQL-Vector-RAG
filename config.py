@@ -75,7 +75,8 @@ MAX_STAY_DAYS = _int_env("MAX_STAY_DAYS", 365)
 
 # ── Servers ──────────────────────────────────────────────────────────
 API_HOST = os.getenv("API_HOST", "127.0.0.1")
-API_PORT = _int_env("API_PORT", 8010)
+# Most hosts (Hugging Face Spaces, Render, Railway, Fly) inject PORT.
+API_PORT = _int_env("PORT", _int_env("API_PORT", 8010))
 # Origins allowed to call the FastAPI backend (the Next.js dev server).
 CORS_ORIGINS = [
     o.strip()

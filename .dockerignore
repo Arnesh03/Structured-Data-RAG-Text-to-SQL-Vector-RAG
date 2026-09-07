@@ -1,0 +1,37 @@
+# Everything the image builds for itself, or has no business being in it.
+.git
+.github
+.venv
+venv
+env
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+
+# Regenerated inside the image by `cli.py --setup`
+data/
+
+# Rebuilt in the web stage
+web/node_modules
+web/.next
+web/out
+web/tsconfig.tsbuildinfo
+
+# Secrets must never reach the build context
+.env
+.env.*
+!.env.example
+web/.env.local
+
+# Local tooling and docs
+.claude
+docs
+tests
+Makefile
+README.md
+*.md
+!requirements*.txt
+.DS_Store

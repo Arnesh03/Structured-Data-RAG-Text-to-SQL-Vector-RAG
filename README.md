@@ -53,6 +53,7 @@ and a question about *the billing policy* becomes a vector search.
 | [Data](docs/DATA.md) | The dataset, every cleaning step, the schema, the document corpus |
 | [API](docs/API.md) | Endpoint reference, payload shapes, the SSE event protocol |
 | [Development](docs/DEVELOPMENT.md) | Setup, commands, configuration, testing, troubleshooting |
+| [Deployment](docs/DEPLOYMENT.md) | Shipping it as one container: the Dockerfile, sizing, hosting options |
 
 ---
 
