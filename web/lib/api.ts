@@ -4,6 +4,9 @@ import type {
   Health,
   PolicyDocument,
   PreprocessingReport,
+  EvalDataset,
+  EvalRunDetail,
+  EvalSummary,
   SchemaColumn,
   StreamEvent,
 } from "./types";
@@ -37,6 +40,14 @@ export const getPreprocessing = (s?: AbortSignal) =>
   getJson<PreprocessingReport>("/api/preprocessing", s);
 export const getSchema = (s?: AbortSignal) =>
   getJson<{ table: string; columns: SchemaColumn[] }>("/api/schema", s);
+
+/* The eval harness is read-only over the trace store; see evalkit/api.py. */
+export const getEvalSummary = (s?: AbortSignal) =>
+  getJson<EvalSummary>("/api/eval/summary", s);
+export const getEvalDataset = (s?: AbortSignal) =>
+  getJson<EvalDataset>("/api/eval/dataset", s);
+export const getEvalRun = (runId: string, s?: AbortSignal) =>
+  getJson<EvalRunDetail>(`/api/eval/runs/${encodeURIComponent(runId)}`, s);
 
 /**
  * POST a question and yield each server-sent event as it arrives.

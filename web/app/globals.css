@@ -32,9 +32,11 @@
   --rag: #8944ab;
   --rag-soft: #f4eaf9;
   --positive: #00845a;
+  --positive-soft: #e4f4ed;
   --warn: #b25000;
   --warn-soft: #fdf0e3;
   --danger: #c9251c;
+  --danger-soft: #fdeceb;
 
   --chart-grid: rgb(0 0 0 / 0.07);
   --chart-axis: #86868b;
@@ -71,9 +73,11 @@
   --rag: #d18cf5;
   --rag-soft: #33184a;
   --positive: #2fd18b;
+  --positive-soft: #0d3326;
   --warn: #f5a623;
   --warn-soft: #3a2a0c;
   --danger: #ff6961;
+  --danger-soft: #3d1613;
 
   --chart-grid: rgb(255 255 255 / 0.08);
   --chart-axis: #86868b;
@@ -105,7 +109,9 @@
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
   --color-positive: var(--positive);
+  --color-positive-soft: var(--positive-soft);
 
   --font-sans: var(--font-stack);
   --font-mono: var(--font-mono-stack);

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, FileText, MessagesSquare, Table2 } from "lucide-react";
+import { BarChart3, FileText, FlaskConical, MessagesSquare, Table2 } from "lucide-react";
 import { Chat } from "@/components/Chat";
 import { Dashboard } from "@/components/Dashboard";
 import { DataView } from "@/components/DataView";
 import { DocumentsView } from "@/components/DocumentsView";
+import { Evals } from "@/components/Evals";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge, cx } from "@/components/ui";
 import { getHealth } from "@/lib/api";
@@ -16,6 +17,7 @@ const TABS = [
   { id: "dashboard", label: "Dashboard", Icon: BarChart3 },
   { id: "data", label: "Data", Icon: Table2 },
   { id: "documents", label: "Documents", Icon: FileText },
+  { id: "evals", label: "Evals", Icon: FlaskConical },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -66,12 +68,21 @@ function Segmented({
   onChange: (id: TabId) => void;
 }) {
   const index = TABS.findIndex((t) => t.id === active);
+  /*
+    The pill is exactly one slot wide and steps by its own width, so the
+    geometry holds for any number of tabs. The container's p-1 is the 0.5rem
+    taken off the track, and percentages here resolve against the padding box.
+  */
+  const slot = `calc((100% - 0.5rem) / ${TABS.length})`;
   return (
-    <div className="relative grid grid-cols-4 rounded-full bg-surface-2 p-1">
+    <div
+      className="relative grid rounded-full bg-surface-2 p-1"
+      style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}
+    >
       <span
         aria-hidden
-        className="absolute inset-y-1 left-1 w-[calc(25%-0.25rem)] rounded-full bg-elevated shadow-[var(--shadow-sm)] transition-transform duration-500 [transition-timing-function:var(--ease)]"
-        style={{ transform: `translateX(calc(${index} * (100% + 0.333rem)))` }}
+        className="absolute inset-y-1 left-1 rounded-full bg-elevated shadow-[var(--shadow-sm)] transition-transform duration-500 [transition-timing-function:var(--ease)]"
+        style={{ width: slot, transform: `translateX(${index * 100}%)` }}
       />
       {TABS.map(({ id, label, Icon }) => (
         <button
@@ -215,6 +226,13 @@ export default function Home() {
           <Panel active={tab === "documents"}>
             <div className="mx-auto max-w-6xl px-6">
               <DocumentsView />
+            </div>
+          </Panel>
+        )}
+        {visited.has("evals") && (
+          <Panel active={tab === "evals"}>
+            <div className="mx-auto max-w-6xl px-6">
+              <Evals />
             </div>
           </Panel>
         )}
