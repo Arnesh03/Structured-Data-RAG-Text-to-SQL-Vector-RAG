@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FlaskConical, GitCommitHorizontal, ShieldCheck } from "lucide-react";
 import { ConfusionMatrix, MetricGroups, SliceTable } from "@/components/EvalMetrics";
 import { Failures } from "@/components/EvalFailures";
+import { EvalPlayground } from "@/components/EvalPlayground";
 import { Card, CardHeader, ErrorNote, Reveal, Skeleton, cx } from "@/components/ui";
 import { getEvalDataset, getEvalRun, getEvalSummary } from "@/lib/api";
 import { METRIC_GROUPS, TONE_BG, TONE_TEXT, label, toneOf } from "@/lib/metrics";
@@ -97,6 +98,8 @@ function DatasetPanel({ data }: { data: EvalDataset }) {
 function EmptyState({ dataset }: { dataset: EvalDataset | null }) {
   return (
     <div className="flex flex-col gap-5">
+      <EvalPlayground dataset={dataset} />
+
       <Card>
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-accent-soft">
@@ -385,6 +388,10 @@ export function Evals() {
         </Reveal>
       ) : (
         <div className="flex flex-col gap-5">
+          <Reveal delay={30}>
+            <EvalPlayground dataset={dataset} />
+          </Reveal>
+
           {summary.runs.length > 1 && (
             <Reveal delay={40}>
               <AblationTable runs={summary.runs} />

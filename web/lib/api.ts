@@ -4,9 +4,12 @@ import type {
   Health,
   PolicyDocument,
   PreprocessingReport,
+  CandidatePayload,
+  CandidateQueued,
   EvalDataset,
   EvalRunDetail,
   EvalSummary,
+  TryResult,
   SchemaColumn,
   StreamEvent,
 } from "./types";
@@ -30,6 +33,33 @@ async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/**
+ * POST and parse, surfacing FastAPI's `detail` rather than a bare status.
+ *
+ * The eval endpoints reject bad input with a real validation message — "an
+ * answerable sql question needs gold_sql" — and that message is the whole
+ * value of the response, so it must reach the user rather than "422".
+ */
+async function postJson<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!res.ok) {
+    let detail = `${res.status} ${res.statusText}`;
+    try {
+      const payload = await res.json();
+      if (payload?.detail) detail = String(payload.detail);
+    } catch {
+      /* a non-JSON error body; the status line is all we have */
+    }
+    throw new Error(detail);
+  }
+  return res.json() as Promise<T>;
+}
+
 export const getHealth = (s?: AbortSignal) => getJson<Health>("/api/health", s);
 export const getDashboard = (s?: AbortSignal) => getJson<Dashboard>("/api/dashboard", s);
 export const getExamples = (s?: AbortSignal) =>
@@ -48,6 +78,22 @@ export const getEvalDataset = (s?: AbortSignal) =>
   getJson<EvalDataset>("/api/eval/dataset", s);
 export const getEvalRun = (runId: string, s?: AbortSignal) =>
   getJson<EvalRunDetail>(`/api/eval/runs/${encodeURIComponent(runId)}`, s);
+
+/** Runs one ad-hoc question through the live pipeline. Nothing is stored. */
+export const tryQuestion = (
+  question: string,
+  expectUnanswerable: boolean,
+  s?: AbortSignal,
+) =>
+  postJson<TryResult>(
+    "/api/eval/try",
+    { question, expect_unanswerable: expectUnanswerable },
+    s,
+  );
+
+/** Queues a question for review; it still needs make eval-promote. */
+export const addCandidate = (payload: CandidatePayload, s?: AbortSignal) =>
+  postJson<CandidateQueued>("/api/eval/candidates", payload, s);
 
 /**
  * POST a question and yield each server-sent event as it arrives.
