@@ -1,0 +1,11 @@
+# Exactly one variable moved from baseline: EMBEDDING_MODEL=sentence-transformers/all-mpnet-base-v2.
+# Change a second and the result can no longer be attributed.
+name: embed_mpnet
+notes: 'stronger and slower embedding model'
+
+CHUNK_SIZE: 600
+CHUNK_OVERLAP: 80
+RETRIEVER_TOP_K: 4
+EMBEDDING_MODEL: sentence-transformers/all-mpnet-base-v2
+LLM_TEMPERATURE: 0.0
+SQL_MAX_ROWS: 20

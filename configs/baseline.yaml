@@ -1,0 +1,12 @@
+# The reference point for every ablation. Pinned explicitly rather than
+# left to config.py's defaults, so a later change there cannot silently
+# move the baseline out from under past results.
+name: baseline
+notes: 'the pipeline as it ships today; pinned so it stays the reference'
+
+CHUNK_SIZE: 600
+CHUNK_OVERLAP: 80
+RETRIEVER_TOP_K: 4
+EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+LLM_TEMPERATURE: 0.0
+SQL_MAX_ROWS: 20

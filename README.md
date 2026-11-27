@@ -245,3 +245,124 @@ FastAPI · pandas · Next.js 16 · React 19 · TypeScript · Tailwind CSS v4 · 
 
 > The dataset is synthetic and used for demonstration only. Nothing here is
 > medical advice, and no real patient data is involved.
+
+---
+
+## Evaluation harness
+
+Every quality claim in this README traces back to a reproducible run. The
+harness lives in `evalkit/` and imports the pipeline as a library without
+modifying it.
+
+### The finding
+
+> _Fill this in once you have run the grid._ One sentence, with a number:
+> "Chunk size 300 cut unfaithful answers 11 points against 1000 at equal
+> retrieval recall." If you cannot write that sentence, the grid has not told
+> you anything yet.
+
+### Reproduce it
+
+```bash
+make install        # once
+make setup          # build the SQLite DB and the FAISS index
+make eval           # baseline over the golden set, then score it
+make eval-report    # markdown report in reports/
+```
+
+### Why four metric families
+
+The pipeline is hybrid, so it has four surfaces where a plain RAG project has
+one. Each needs its own kind of measurement:
+
+| Surface | Metrics | LLM in the loop? |
+| --- | --- | --- |
+| Router | accuracy, keyword-fallback rate, standalone heuristic accuracy, confusion matrix | no |
+| Text-to-SQL | execution accuracy, invalid-SQL rate, exact match | no |
+| Vector retrieval | precision@k, recall@k, MRR, nDCG@k | no |
+| Generation | faithfulness, answer relevance, answer correctness, abstention | yes |
+
+Three of the four are deterministic. Most of the numbers here carry no model
+variance at all.
+
+### How execution accuracy is defined
+
+Generated SQL is graded on whether it *returns the same rows* as the gold
+query, never on string similarity. The comparison rule:
+
+- result sets compare as multisets, so duplicate rows count
+- row order is ignored unless the gold query contains `ORDER BY`
+- column order is ignored: each row's cells are sorted before comparison
+- floats round to 4 decimal places, and `5` equals `5.0`
+- `NULL` and `''` are distinct
+
+### How abstention is defined
+
+The golden set contains unanswerable questions that are deliberate near-misses
+on real content. An answer counts as an abstention when it matches a refusal
+pattern (including `rag_chain.NO_ANSWER`). `hallucinated` is the complement,
+and it is the number worth leading with.
+
+### The router's keyword fallback
+
+`router.py` falls back to a keyword heuristic when the LLM errors or returns
+something unparseable. The harness measures three things separately:
+`fallback_used` (how often that path fires), `route_correct` (what the pipeline
+achieved), and `keyword_correct` (what the heuristic alone would have achieved
+on the same questions). If the heuristic is close, an LLM call can come out of
+the hot path of every query.
+
+### The golden set
+
+`evalkit/golden/golden_set.jsonl`. Current composition: run `make eval-stats`.
+
+Three families: quantitative (SQL arm), qualitative (vector arm), and
+adversarial — unanswerable questions that measure hallucination, plus
+ambiguous-route questions that need both arms at once and which a single-label
+router cannot fully serve.
+
+To grow it:
+
+```bash
+make eval-seed       # generate candidates
+# review every candidate by hand, set "reviewed": true
+make eval-promote    # merge the reviewed ones in
+```
+
+Candidates are never promoted unreviewed. Questions generated from the same
+chunks the retriever indexes will flatter the retriever, so the review pass is
+the part that makes the dataset worth anything. Record your keep rate here.
+
+### Ablations
+
+```bash
+make eval-grid       # baseline plus every one-variable ablation
+make eval-ablations  # the comparison table
+```
+
+Each config under `configs/ablations/` changes exactly one variable from the
+baseline. That is a deliberate choice over grid search: a grid tells you which
+settings won, a controlled ablation tells you why.
+
+### Validating the judge
+
+An LLM grading an LLM means nothing until it is checked against a human.
+
+```bash
+make eval-judge-export   # 50 answers to label, judge verdict hidden
+# fill in human_faithful and human_correct
+make eval-kappa          # Cohen's kappa
+```
+
+**Judge agreement:** _fill in after running it._ Report the kappa next to the
+judged metrics whatever it turns out to be. Above ~0.8 the automated numbers
+stand alone; 0.6–0.8 is usable with the caveat stated; below 0.6 means the
+judge prompt needs work, which is itself a result.
+
+### The CI gate
+
+`.github/workflows/eval.yml` runs a stratified 20-question subset with the
+deterministic evaluators on every pull request, and fails the build if a
+headline metric drops more than 3 points below `reports/baseline.json`, or if
+`hallucinated` or `sql_invalid` rises at all. The baseline is committed and
+moves only by an explicit `make eval-save-baseline`.

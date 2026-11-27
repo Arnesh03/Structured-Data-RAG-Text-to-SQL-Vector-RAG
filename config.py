@@ -36,7 +36,9 @@ RAW_CSV_PATH = Path(os.getenv("RAW_CSV_PATH", PROJECT_ROOT / "healthcare_dataset
 CLEAN_CSV_PATH = DATA_DIR / "healthcare_clean.csv"
 REPORT_PATH = DATA_DIR / "preprocessing_report.json"
 DB_PATH = DATA_DIR / "healthcare.db"
-VECTORSTORE_DIR = DATA_DIR / "faiss_index"
+# Overridable so the eval harness can keep one index per chunk/embedding
+# combination instead of rebuilding into the same directory each run.
+VECTORSTORE_DIR = Path(os.getenv("VECTORSTORE_DIR", DATA_DIR / "faiss_index"))
 
 # ── LLM settings ──────────────────────────────────────────────────────
 # "deepseek", "groq" (free tier, very fast), or "openai".
