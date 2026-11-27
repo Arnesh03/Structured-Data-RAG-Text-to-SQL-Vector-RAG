@@ -24,6 +24,10 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
+          # CPU-only torch, as the Dockerfile does. The default wheel drags in
+          # ~2 GB of CUDA libraries that a GitHub runner cannot use, which is
+          # the difference between a 1-minute install and a 10-minute one.
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
           pip install -r requirements-dev.txt
       - name: Run the offline suite
         run: python -m pytest tests -q
@@ -43,6 +47,10 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
+          # CPU-only torch, as the Dockerfile does. The default wheel drags in
+          # ~2 GB of CUDA libraries that a GitHub runner cannot use, which is
+          # the difference between a 1-minute install and a 10-minute one.
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
           pip install -r requirements.txt -r requirements-dev.txt
       - name: Cache the FAISS index and judge verdicts
         uses: actions/cache@v4
