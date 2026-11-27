@@ -29,6 +29,18 @@ jobs:
           # the difference between a 1-minute install and a 10-minute one.
           pip install --index-url https://download.pytorch.org/whl/cpu torch
           pip install -r requirements-dev.txt
+      - name: Cache the embedding model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('config.py') }}
+
+      # The suite is offline in the sense that it needs no API key, but it does
+      # need the built artifacts: most of it asserts against the real SQLite
+      # table and the real FAISS index. A fresh runner has neither.
+      - name: Build data artifacts
+        run: python cli.py --setup
+
       - name: Run the offline suite
         run: python -m pytest tests -q
 
@@ -57,6 +69,12 @@ jobs:
         with:
           path: reports/.index-cache
           key: index-${{ hashFiles('policies_content.py', 'configs/baseline.yaml') }}
+
+      - name: Cache the embedding model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('config.py') }}
       - name: Build data artifacts
         run: python cli.py --setup
       - name: Run the gated subset
