@@ -404,8 +404,16 @@ judge prompt needs work, which is itself a result.
 
 ### The CI gate
 
-`.github/workflows/eval.yml` runs a stratified 20-question subset with the
-deterministic evaluators on every pull request, and fails the build if a
-headline metric drops more than 3 points below `reports/baseline.json`, or if
-`hallucinated` or `sql_invalid` rises at all. The baseline is committed and
-moves only by an explicit `make eval-save-baseline`.
+`.github/workflows/eval.yml` runs the full golden set with the deterministic
+evaluators on every pull request and compares it against
+`reports/baseline.json`, which is committed and moves only by an explicit
+`make eval-save-baseline`.
+
+The thresholds are measured rather than chosen. Running the same unchanged
+pipeline twice moved SQL execution accuracy 0.481 to 0.536, so the model's own
+run-to-run variance is about 5 points; the gate fails at 8, and at 5 for
+`hallucinated` and `sql_invalid`. A tighter bar would detect noise rather than
+regressions, and a gate that cries wolf gets ignored.
+
+It runs the full set rather than a sample for the same reason: 20 questions
+compared against a baseline over 66 differ by sampling alone.

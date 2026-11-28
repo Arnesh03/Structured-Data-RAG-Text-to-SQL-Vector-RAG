@@ -16,6 +16,13 @@ from evalkit.evaluators.generation import looks_like_refusal
 from evalkit.evaluators.retrieval import RetrievalEvaluator
 from evalkit.evaluators.router import RouterEvaluator, confusion_matrix
 from evalkit.evaluators.sql import normalize_cell, normalize_rows
+from evalkit.gate import (
+    DEFAULT_THRESHOLD,
+    NOISE_FLOOR,
+    SAFETY_METRICS,
+    SAFETY_THRESHOLD,
+    compare,
+)
 from evalkit.judge_validate import cohens_kappa
 from evalkit.store import TraceStore
 
@@ -289,3 +296,64 @@ def test_rescoring_replaces_rather_than_duplicates(tmp_path):
     store.write_scores(run_id, "q1", {"faithfulness": 0.0})
     store.write_scores(run_id, "q1", {"faithfulness": 1.0})
     assert store.aggregate(run_id) == {"faithfulness": 1.0}
+
+
+# ── The CI gate ───────────────────────────────────────────────────────
+
+def test_gate_passes_when_nothing_regressed():
+    failures, _ = compare({"route_correct": 0.9}, {"route_correct": 0.95})
+    assert failures == []
+
+
+def test_gate_fails_a_real_regression():
+    failures, _ = compare({"route_correct": 0.95}, {"route_correct": 0.70})
+    assert len(failures) == 1
+    assert "route_correct" in failures[0]
+
+
+def test_gate_ignores_movement_inside_the_noise_floor():
+    """
+    The number that matters: two runs of an UNCHANGED pipeline moved SQL
+    execution accuracy 0.481 -> 0.536. A gate that fails on a swing that size
+    is reporting model variance as a regression.
+    """
+    failures, _ = compare(
+        {"sql_execution_accuracy": 0.536},
+        {"sql_execution_accuracy": 0.481},  # the same drift, downwards
+    )
+    assert failures == [], "the measured noise floor must not trip the gate"
+
+
+def test_the_default_threshold_sits_above_the_measured_noise_floor():
+    assert DEFAULT_THRESHOLD > NOISE_FLOOR
+
+
+def test_lower_is_better_metrics_are_read_the_right_way_round():
+    # Hallucination falling is an improvement, however large the move.
+    failures, _ = compare({"hallucinated": 0.60}, {"hallucinated": 0.10})
+    assert failures == []
+
+    # Rising past the safety threshold is a failure.
+    failures, _ = compare({"hallucinated": 0.10}, {"hallucinated": 0.30})
+    assert len(failures) == 1
+
+
+def test_safety_metrics_are_held_to_a_tighter_bar():
+    metric = SAFETY_METRICS[0]
+    between = (SAFETY_THRESHOLD + DEFAULT_THRESHOLD) / 2
+
+    failures, _ = compare({metric: 0.10}, {metric: 0.10 + between})
+    assert len(failures) == 1, "a safety metric must fail below the ordinary threshold"
+
+    failures, _ = compare({"faithfulness": 0.90}, {"faithfulness": 0.90 - between})
+    assert failures == [], "an ordinary metric at the same delta must not"
+
+
+def test_a_metric_missing_from_the_run_is_a_note_not_a_failure():
+    # CI scores without the judge, so faithfulness is absent. That is expected,
+    # not a regression.
+    failures, notes = compare(
+        {"route_correct": 0.95, "faithfulness": 0.9}, {"route_correct": 0.95}
+    )
+    assert failures == []
+    assert any("faithfulness" in note for note in notes)

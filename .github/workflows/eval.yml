@@ -2,10 +2,13 @@ name: eval
 
 # Blocks a pull request that makes the pipeline measurably worse.
 #
-# The gate runs a stratified 20-question subset with the deterministic
-# evaluators only: no judge calls, so a CI run costs nothing and finishes in
-# a couple of minutes. Faithfulness and correctness are graded locally, where
-# a human can look at them.
+# The gate runs the FULL golden set with the deterministic evaluators only:
+# no judge calls, so faithfulness and correctness are graded locally where a
+# human can look at them, and a CI run costs one pipeline pass.
+#
+# It used to run a stratified 20-question sample, which was cheaper and
+# wrong: comparing 20 questions against a baseline computed over 66 differs
+# by sampling alone, before any code change.
 
 on:
   pull_request:
@@ -86,7 +89,7 @@ jobs:
             echo "Add one in Settings -> Secrets to turn this on."
             exit 0
           fi
-          python -m evalkit.runner --config configs/baseline.yaml --sample 20
+          python -m evalkit.runner --config configs/baseline.yaml
           python -m evalkit.score --no-judge
           python -m evalkit.gate
       - name: Publish the report
