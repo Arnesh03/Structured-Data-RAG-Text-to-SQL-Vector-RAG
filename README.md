@@ -256,10 +256,53 @@ modifying it.
 
 ### The finding
 
-> _Fill this in once you have run the grid._ One sentence, with a number:
-> "Chunk size 300 cut unfaithful answers 11 points against 1000 at equal
-> retrieval recall." If you cannot write that sentence, the grid has not told
-> you anything yet.
+Growing the corpus from 37 self-authored chunks to 3,212 chunks of CMS manuals
+and HIPAA regulations **halved retrieval precision@4, 0.712 to 0.365, while
+recall@4 held at 1.000.**
+
+That pair of numbers says something a single number would have hidden. The real
+documents are acting as *distractors*, not as answer sources: the gold policy
+PDFs are short and semantically close to the questions, so they still rank in
+the top 4, while real chunks crowd in around them. Precision falls because the
+competition got real; recall holds because the target is still easy to pick out.
+Retrieval will not be genuinely hard until the golden set contains questions
+whose answers live in the CMS and HIPAA text.
+
+**The noise floor is about 5 points.** SQL execution accuracy moved 0.481 to
+0.536 across these two runs, and nothing in that path changed — same database,
+same 28 questions, same prompts, temperature 0. That swing is run-to-run
+variance in the model, and it is the single most useful number here: any
+ablation difference smaller than ~5 points on this dataset is not a result.
+
+| metric | 37 chunks | 3,212 chunks |
+| --- | --- | --- |
+| routing accuracy | 0.981 | 1.000 |
+| keyword heuristic alone | 0.963 | 0.963 |
+| SQL execution accuracy | 0.481 | 0.536 |
+| invalid SQL | 0.000 | 0.000 |
+| precision@4 | 0.712 | **0.365** |
+| recall@4 | 1.000 | 1.000 |
+| MRR | 1.000 | 0.917 |
+| nDCG@4 | 0.981 | 0.919 |
+| faithfulness | 0.962 | 0.944 |
+| hallucination rate | 0.667 | 0.667 |
+
+Two further results worth stating plainly:
+
+**The keyword router nearly matches the LLM router** — 0.963 against 1.000. An
+LLM call sits in the hot path of every query to buy under four points of routing
+accuracy, which is a cost worth questioning rather than assuming.
+
+**Two thirds of unanswerable questions get answered anyway.** Part of that is
+structural rather than hallucination: a question routed to the SQL arm has no
+refusal path at all, since that arm generates a query and reports whatever comes
+back. Separating "invented a fact" from "had no way to decline" is the next
+thing to fix.
+
+All figures come from `make eval` at commit `146809e`, scored with the judge
+described below. The judge itself is **not yet validated** — run
+`make eval-kappa` before treating faithfulness or correctness as measurements
+rather than estimates.
 
 ### Reproduce it
 
