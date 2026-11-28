@@ -57,6 +57,10 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 LLM_TEMPERATURE = _float_env("LLM_TEMPERATURE", 0.0)
 LLM_MAX_RETRIES = _int_env("LLM_MAX_RETRIES", 2)
+# Seconds to wait on a single completion before giving up. Without this a
+# rate-limited or half-open connection blocks forever: a batch job will sit
+# on one request indefinitely rather than failing the question and moving on.
+LLM_TIMEOUT = _float_env("LLM_TIMEOUT", 60.0)
 
 # ── Embedding settings (local HuggingFace — free, no API key) ─────────
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")

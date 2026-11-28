@@ -20,6 +20,7 @@ from config import (
     GROQ_MODEL,
     LLM_MAX_RETRIES,
     LLM_PROVIDER,
+    LLM_TIMEOUT,
     LLM_TEMPERATURE,
     OPENAI_API_KEY,
     OPENAI_MODEL,
@@ -118,6 +119,7 @@ def get_llm(temperature: float = LLM_TEMPERATURE) -> BaseChatModel:
             model=p.model,
             temperature=temperature,
             max_retries=LLM_MAX_RETRIES,
+            timeout=LLM_TIMEOUT,
             api_key=p.api_key,
         )
 
@@ -128,6 +130,7 @@ def get_llm(temperature: float = LLM_TEMPERATURE) -> BaseChatModel:
         model=p.model,
         temperature=temperature,
         max_retries=LLM_MAX_RETRIES,
+        timeout=LLM_TIMEOUT,
         api_key=p.api_key,
         base_url=p.base_url,
     )
