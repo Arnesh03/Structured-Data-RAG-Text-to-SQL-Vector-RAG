@@ -40,6 +40,28 @@ def test_config_rejects_unknown_setting():
         EvalConfig.from_dict({"name": "typo", "CHUNKSIZE": 600})
 
 
+def test_index_hash_changes_with_the_corpus(monkeypatch):
+    """
+    The same settings over a different corpus must not share an index.
+
+    This is a regression test for a real bug: the key was built from chunk
+    size, overlap and embedding model alone, so growing the corpus from 37 to
+    3,212 chunks reused the old index and reported no change in retrieval.
+    """
+    import corpus
+
+    config = EvalConfig.from_dict({"name": "baseline", "CHUNK_SIZE": 600})
+
+    monkeypatch.setattr(corpus, "fingerprint", lambda: "corpus-a")
+    before_index, before_config = config.index_hash, config.config_hash
+
+    monkeypatch.setattr(corpus, "fingerprint", lambda: "corpus-b")
+    assert config.index_hash != before_index, "a new corpus needs a new index"
+
+    # The corpus is not a tunable setting, so results stay comparable across it.
+    assert config.config_hash == before_config
+
+
 def test_index_hash_only_tracks_index_settings():
     base = {"name": "a", "CHUNK_SIZE": 600, "RETRIEVER_TOP_K": 4}
     changed_k = dict(base, RETRIEVER_TOP_K=8)

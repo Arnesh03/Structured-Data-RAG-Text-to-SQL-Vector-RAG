@@ -1,4 +1,4 @@
-.PHONY: help install setup rebuild api web dev cli demo stats gradio test clean \
+.PHONY: help install setup rebuild corpus api web dev cli demo stats gradio test clean \
         eval eval-grid eval-score eval-report eval-ablations eval-ci eval-stats \
         eval-seed eval-promote eval-judge-export eval-kappa eval-save-baseline
 
@@ -17,6 +17,9 @@ install:  ## create the venv, install Python deps, install web deps
 
 setup:    ## clean the CSV, build the SQLite DB and the FAISS index
 	$(PY) cli.py --setup
+
+corpus:   ## download the real public-domain policy corpus (CMS, HIPAA)
+	$(PY) corpus.py
 
 rebuild:  ## rebuild every artifact from the raw CSV
 	$(PY) cli.py --setup --force

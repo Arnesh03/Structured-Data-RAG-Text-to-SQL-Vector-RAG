@@ -23,15 +23,22 @@ GOLDEN_SET = GOLDEN_DIR / "golden_set.jsonl"
 
 Route = Literal["sql", "rag"]
 
-# The policy corpus, as `vectorstore.DOCUMENTS` names it. Retrieval ground
-# truth is expressed in these filenames.
-KNOWN_SOURCES = {
+# The policy corpus. Retrieval ground truth is expressed in these filenames.
+#
+# Imported from `corpus` rather than restated, so adding a document to the real
+# corpus cannot leave the validator rejecting questions about it. `corpus` pulls
+# in only `config`, so this stays importable without LangChain.
+from corpus import REAL_DOCUMENTS  # noqa: E402
+
+GENERATED_SOURCES = {
     "admission_policy.pdf",
     "insurance_billing_policy.pdf",
     "clinical_guidelines.pdf",
     "discharge_policy.pdf",
     "patient_faq.pdf",
 }
+
+KNOWN_SOURCES = GENERATED_SOURCES | set(REAL_DOCUMENTS)
 
 
 class GoldenRecord(BaseModel):

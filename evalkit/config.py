@@ -39,6 +39,11 @@ TUNABLE = (
 
 # Changing any of these invalidates the FAISS index, so the worker rebuilds it
 # into a directory keyed by their values.
+#
+# The corpus itself is keyed in too (see `index_hash`). Settings alone are not
+# enough: the same chunk size over a different set of documents is a different
+# index, and reusing one silently would make a corpus change look like it had
+# no effect at all.
 INDEX_KEYS = ("CHUNK_SIZE", "CHUNK_OVERLAP", "EMBEDDING_MODEL")
 
 
@@ -94,8 +99,11 @@ class EvalConfig:
 
     @property
     def index_hash(self) -> str:
-        """Digest of only the settings that invalidate the FAISS index."""
+        """Digest of the settings that invalidate the FAISS index, plus the corpus."""
+        from corpus import fingerprint
+
         subset = {k: v for k, v in self.settings if k in INDEX_KEYS}
+        subset["__corpus__"] = fingerprint()
         payload = json.dumps(subset, sort_keys=True)
         return hashlib.sha256(payload.encode()).hexdigest()[:12]
 
