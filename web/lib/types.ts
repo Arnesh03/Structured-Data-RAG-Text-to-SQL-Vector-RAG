@@ -147,3 +147,115 @@ export interface Message {
   sources?: SourceRef[];
   chunks?: Chunk[];
 }
+
+/* ── Evaluation harness ─────────────────────────────────────────────── */
+
+export type Metrics = Record<string, number>;
+
+export interface EvalRun {
+  run_id: string;
+  config_name: string;
+  config_hash: string;
+  config: Record<string, string>;
+  git_sha: string;
+  git_dirty: boolean;
+  started_at: string;
+  dataset_size: number;
+  metrics: Metrics;
+}
+
+export interface EvalSummary {
+  has_data: boolean;
+  dataset: DatasetSummary | null;
+  metric_order: string[];
+  lower_is_better: string[];
+  runs: EvalRun[];
+}
+
+export interface DatasetSummary {
+  total: number;
+  sql: number;
+  rag: number;
+  unanswerable: number;
+  categories: number;
+}
+
+export interface EvalDataset {
+  available: boolean;
+  summary: DatasetSummary | null;
+  categories: Record<string, number>;
+  /** The policy corpus filenames, used as retrieval ground truth. */
+  sources: string[];
+}
+
+export type FailureKind = "hallucinated" | "misrouted" | "wrong answer" | "errored";
+
+export interface EvalFailure {
+  question_id: string;
+  question: string;
+  kind: FailureKind;
+  category: string;
+  expected_route: Route | null;
+  actual_route: Route | null;
+  answerable: boolean;
+  fallback_used: boolean;
+  answer: string;
+  sql_query: string | null;
+  gold_sql: string | null;
+  sources: string[];
+  gold_doc_ids: string[] | null;
+}
+
+export interface EvalRunDetail {
+  run_id: string;
+  config_name: string;
+  config: Record<string, string>;
+  config_hash: string;
+  git_sha: string;
+  git_dirty: boolean;
+  started_at: string;
+  metrics: Metrics;
+  by_category: Record<string, Metrics>;
+  by_difficulty: Record<string, Metrics>;
+  confusion: Record<string, Record<string, number>>;
+  counts: { traces: number; failures: number; fallbacks: number };
+  failures: EvalFailure[];
+}
+
+/** One ad-hoc question run through the live pipeline from the Evals tab. */
+export interface TryResult {
+  question: string;
+  route: Route | null;
+  keyword_route: Route | null;
+  fallback_used: boolean;
+  ok: boolean;
+  answer: string | null;
+  sql_query: string | null;
+  columns: string[] | null;
+  rows: (string | number | null)[][];
+  sources: string[];
+  chunks: { file: string; title: string; text: string }[];
+  elapsed: number;
+  grades: Record<string, number>;
+  judge_note: string | null;
+  expected_unanswerable: boolean;
+}
+
+export interface CandidatePayload {
+  question: string;
+  route_label: Route;
+  category: string;
+  difficulty: "easy" | "medium" | "hard";
+  answerable: boolean;
+  gold_sql: string | null;
+  gold_doc_ids: string[] | null;
+  gold_answer: string | null;
+  notes: string;
+}
+
+export interface CandidateQueued {
+  queued: boolean;
+  id: string;
+  pending: number;
+  next_step: string;
+}

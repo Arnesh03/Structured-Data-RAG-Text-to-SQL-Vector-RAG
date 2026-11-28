@@ -21,6 +21,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+import corpus
 from config import (
     CHUNK_OVERLAP,
     CHUNK_SIZE,
@@ -46,8 +47,10 @@ DOCUMENTS = {
     "patient_faq.pdf": ("Patient Rights & Frequently Asked Questions", PATIENT_FAQ),
 }
 
-# Friendly display names, used when citing sources back to the user.
+# Friendly display names, used when citing sources back to the user. The
+# generated policies and the fetched real documents are cited the same way.
 SOURCE_TITLES = {name: title for name, (title, _) in DOCUMENTS.items()}
+SOURCE_TITLES.update(corpus.REAL_TITLES)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -106,7 +109,8 @@ def load_policy_documents() -> list:
 
     print("Loading PDFs...")
     all_docs = []
-    for filename, (title, _) in DOCUMENTS.items():
+
+    def load_one(filename: str, title: str) -> None:
         path = POLICIES_DIR / filename
         docs = PyPDFLoader(str(path)).load()
         for doc in docs:
@@ -114,6 +118,20 @@ def load_policy_documents() -> list:
             doc.metadata["title"] = title
         all_docs.extend(docs)
         print(f"  Loaded {filename} ({len(docs)} page(s))")
+
+    for filename, (title, _) in DOCUMENTS.items():
+        load_one(filename, title)
+
+    # The real corpus, when it has been fetched. It is optional on purpose:
+    # the app has to work for someone who just cloned the repo and has not
+    # run `make corpus` yet.
+    real = corpus.present()
+    for filename in real:
+        load_one(filename, corpus.REAL_TITLES[filename])
+
+    if not real:
+        print("  (no real corpus yet — run `make corpus` for a non-toy index)")
+
     return all_docs
 
 

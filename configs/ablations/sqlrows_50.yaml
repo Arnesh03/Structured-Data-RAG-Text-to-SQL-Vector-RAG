@@ -1,0 +1,11 @@
+# Exactly one variable moved from baseline: SQL_MAX_ROWS=50.
+# Change a second and the result can no longer be attributed.
+name: sqlrows_50
+notes: 'wider row cap into the answer prompt'
+
+CHUNK_SIZE: 600
+CHUNK_OVERLAP: 80
+RETRIEVER_TOP_K: 4
+EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+LLM_TEMPERATURE: 0.0
+SQL_MAX_ROWS: 50

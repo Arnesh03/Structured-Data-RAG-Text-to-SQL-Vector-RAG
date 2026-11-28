@@ -36,7 +36,9 @@ RAW_CSV_PATH = Path(os.getenv("RAW_CSV_PATH", PROJECT_ROOT / "healthcare_dataset
 CLEAN_CSV_PATH = DATA_DIR / "healthcare_clean.csv"
 REPORT_PATH = DATA_DIR / "preprocessing_report.json"
 DB_PATH = DATA_DIR / "healthcare.db"
-VECTORSTORE_DIR = DATA_DIR / "faiss_index"
+# Overridable so the eval harness can keep one index per chunk/embedding
+# combination instead of rebuilding into the same directory each run.
+VECTORSTORE_DIR = Path(os.getenv("VECTORSTORE_DIR", DATA_DIR / "faiss_index"))
 
 # ── LLM settings ──────────────────────────────────────────────────────
 # "deepseek", "groq" (free tier, very fast), or "openai".
@@ -55,6 +57,10 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 LLM_TEMPERATURE = _float_env("LLM_TEMPERATURE", 0.0)
 LLM_MAX_RETRIES = _int_env("LLM_MAX_RETRIES", 2)
+# Seconds to wait on a single completion before giving up. Without this a
+# rate-limited or half-open connection blocks forever: a batch job will sit
+# on one request indefinitely rather than failing the question and moving on.
+LLM_TIMEOUT = _float_env("LLM_TIMEOUT", 60.0)
 
 # ── Embedding settings (local HuggingFace — free, no API key) ─────────
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")

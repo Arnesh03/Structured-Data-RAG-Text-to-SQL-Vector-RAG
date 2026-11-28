@@ -245,3 +245,175 @@ FastAPI · pandas · Next.js 16 · React 19 · TypeScript · Tailwind CSS v4 · 
 
 > The dataset is synthetic and used for demonstration only. Nothing here is
 > medical advice, and no real patient data is involved.
+
+---
+
+## Evaluation harness
+
+Every quality claim in this README traces back to a reproducible run. The
+harness lives in `evalkit/` and imports the pipeline as a library without
+modifying it.
+
+### The finding
+
+Growing the corpus from 37 self-authored chunks to 3,212 chunks of CMS manuals
+and HIPAA regulations **halved retrieval precision@4, 0.712 to 0.365, while
+recall@4 held at 1.000.**
+
+That pair of numbers says something a single number would have hidden. The real
+documents are acting as *distractors*, not as answer sources: the gold policy
+PDFs are short and semantically close to the questions, so they still rank in
+the top 4, while real chunks crowd in around them. Precision falls because the
+competition got real; recall holds because the target is still easy to pick out.
+Retrieval will not be genuinely hard until the golden set contains questions
+whose answers live in the CMS and HIPAA text.
+
+**The noise floor is about 5 points.** SQL execution accuracy moved 0.481 to
+0.536 across these two runs, and nothing in that path changed — same database,
+same 28 questions, same prompts, temperature 0. That swing is run-to-run
+variance in the model, and it is the single most useful number here: any
+ablation difference smaller than ~5 points on this dataset is not a result.
+
+| metric | 37 chunks | 3,212 chunks |
+| --- | --- | --- |
+| routing accuracy | 0.981 | 1.000 |
+| keyword heuristic alone | 0.963 | 0.963 |
+| SQL execution accuracy | 0.481 | 0.536 |
+| invalid SQL | 0.000 | 0.000 |
+| precision@4 | 0.712 | **0.365** |
+| recall@4 | 1.000 | 1.000 |
+| MRR | 1.000 | 0.917 |
+| nDCG@4 | 0.981 | 0.919 |
+| faithfulness | 0.962 | 0.944 |
+| hallucination rate | 0.667 | 0.667 |
+
+Two further results worth stating plainly:
+
+**The keyword router nearly matches the LLM router** — 0.963 against 1.000. An
+LLM call sits in the hot path of every query to buy under four points of routing
+accuracy, which is a cost worth questioning rather than assuming.
+
+**Two thirds of unanswerable questions get answered anyway.** Part of that is
+structural rather than hallucination: a question routed to the SQL arm has no
+refusal path at all, since that arm generates a query and reports whatever comes
+back. Separating "invented a fact" from "had no way to decline" is the next
+thing to fix.
+
+All figures come from `make eval` at commit `146809e`, scored with the judge
+described below. The judge itself is **not yet validated** — run
+`make eval-kappa` before treating faithfulness or correctness as measurements
+rather than estimates.
+
+### Reproduce it
+
+```bash
+make install        # once
+make setup          # build the SQLite DB and the FAISS index
+make eval           # baseline over the golden set, then score it
+make eval-report    # markdown report in reports/
+```
+
+### Why four metric families
+
+The pipeline is hybrid, so it has four surfaces where a plain RAG project has
+one. Each needs its own kind of measurement:
+
+| Surface | Metrics | LLM in the loop? |
+| --- | --- | --- |
+| Router | accuracy, keyword-fallback rate, standalone heuristic accuracy, confusion matrix | no |
+| Text-to-SQL | execution accuracy, invalid-SQL rate, exact match | no |
+| Vector retrieval | precision@k, recall@k, MRR, nDCG@k | no |
+| Generation | faithfulness, answer relevance, answer correctness, abstention | yes |
+
+Three of the four are deterministic. Most of the numbers here carry no model
+variance at all.
+
+### How execution accuracy is defined
+
+Generated SQL is graded on whether it *returns the same rows* as the gold
+query, never on string similarity. The comparison rule:
+
+- result sets compare as multisets, so duplicate rows count
+- row order is ignored unless the gold query contains `ORDER BY`
+- column order is ignored: each row's cells are sorted before comparison
+- floats round to 4 decimal places, and `5` equals `5.0`
+- `NULL` and `''` are distinct
+
+### How abstention is defined
+
+The golden set contains unanswerable questions that are deliberate near-misses
+on real content. An answer counts as an abstention when it matches a refusal
+pattern (including `rag_chain.NO_ANSWER`). `hallucinated` is the complement,
+and it is the number worth leading with.
+
+### The router's keyword fallback
+
+`router.py` falls back to a keyword heuristic when the LLM errors or returns
+something unparseable. The harness measures three things separately:
+`fallback_used` (how often that path fires), `route_correct` (what the pipeline
+achieved), and `keyword_correct` (what the heuristic alone would have achieved
+on the same questions). If the heuristic is close, an LLM call can come out of
+the hot path of every query.
+
+### The golden set
+
+`evalkit/golden/golden_set.jsonl`. Current composition: run `make eval-stats`.
+
+Three families: quantitative (SQL arm), qualitative (vector arm), and
+adversarial — unanswerable questions that measure hallucination, plus
+ambiguous-route questions that need both arms at once and which a single-label
+router cannot fully serve.
+
+To grow it:
+
+```bash
+make eval-seed       # generate candidates
+# review every candidate by hand, set "reviewed": true
+make eval-promote    # merge the reviewed ones in
+```
+
+Candidates are never promoted unreviewed. Questions generated from the same
+chunks the retriever indexes will flatter the retriever, so the review pass is
+the part that makes the dataset worth anything. Record your keep rate here.
+
+### Ablations
+
+```bash
+make eval-grid       # baseline plus every one-variable ablation
+make eval-ablations  # the comparison table
+```
+
+Each config under `configs/ablations/` changes exactly one variable from the
+baseline. That is a deliberate choice over grid search: a grid tells you which
+settings won, a controlled ablation tells you why.
+
+### Validating the judge
+
+An LLM grading an LLM means nothing until it is checked against a human.
+
+```bash
+make eval-judge-export   # 50 answers to label, judge verdict hidden
+# fill in human_faithful and human_correct
+make eval-kappa          # Cohen's kappa
+```
+
+**Judge agreement:** _fill in after running it._ Report the kappa next to the
+judged metrics whatever it turns out to be. Above ~0.8 the automated numbers
+stand alone; 0.6–0.8 is usable with the caveat stated; below 0.6 means the
+judge prompt needs work, which is itself a result.
+
+### The CI gate
+
+`.github/workflows/eval.yml` runs the full golden set with the deterministic
+evaluators on every pull request and compares it against
+`reports/baseline.json`, which is committed and moves only by an explicit
+`make eval-save-baseline`.
+
+The thresholds are measured rather than chosen. Running the same unchanged
+pipeline twice moved SQL execution accuracy 0.481 to 0.536, so the model's own
+run-to-run variance is about 5 points; the gate fails at 8, and at 5 for
+`hallucinated` and `sql_invalid`. A tighter bar would detect noise rather than
+regressions, and a gate that cries wolf gets ignored.
+
+It runs the full set rather than a sample for the same reason: 20 questions
+compared against a baseline over 66 differ by sampling alone.

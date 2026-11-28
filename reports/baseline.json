@@ -1,0 +1,23 @@
+{
+  "metrics": {
+    "abstained": 0.3333333333333333,
+    "answer_correctness": 0.9814814814814815,
+    "answer_relevance": 0.9814814814814815,
+    "answered": 1.0,
+    "faithfulness": 0.9444444444444444,
+    "fallback_used": 0.018518518518518517,
+    "hallucinated": 0.6666666666666666,
+    "keyword_correct": 0.9629629629629629,
+    "mrr": 0.9166666666666666,
+    "ndcg_at_k": 0.9191055679591748,
+    "precision_at_k": 0.36538461538461536,
+    "recall_at_k": 1.0,
+    "retrieval_attempted": 1.0,
+    "route_correct": 1.0,
+    "sql_attempted": 1.0,
+    "sql_exact_match": 0.0,
+    "sql_execution_accuracy": 0.5357142857142857,
+    "sql_invalid": 0.0
+  },
+  "run_id": "baseline-5d8d95aa"
+}

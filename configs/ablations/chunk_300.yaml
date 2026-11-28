@@ -1,0 +1,11 @@
+# Exactly one variable moved from baseline: CHUNK_SIZE=300.
+# Change a second and the result can no longer be attributed.
+name: chunk_300
+notes: 'smaller chunks, tighter context'
+
+CHUNK_SIZE: 300
+CHUNK_OVERLAP: 80
+RETRIEVER_TOP_K: 4
+EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+LLM_TEMPERATURE: 0.0
+SQL_MAX_ROWS: 20

@@ -37,3 +37,9 @@ web/tsconfig.tsbuildinfo
 
 # OS
 .DS_Store
+
+# Eval harness working files (the golden set and reports/baseline.json ARE tracked)
+reports/.cache/
+reports/.index-cache/
+reports/*.md
+evalkit/golden/candidates.jsonl

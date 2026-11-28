@@ -107,6 +107,17 @@ def documents() -> list[dict]:
 
 # ── Question answering ────────────────────────────────────────────────
 
+# ── Evaluation harness (optional) ─────────────────────────────────────
+# Mounted softly: the app is useful without the harness, so a missing or
+# half-installed evalkit must not take the whole API down with it.
+try:
+    from evalkit.api import router as eval_router
+except Exception as exc:  # noqa: BLE001 - surface it, but keep serving
+    print(f"  Eval API unavailable ({type(exc).__name__}: {exc})")
+else:
+    app.include_router(eval_router)
+
+
 @app.post("/api/ask")
 async def ask(payload: Question) -> dict:
     """Answer a question and return the whole result at once."""
